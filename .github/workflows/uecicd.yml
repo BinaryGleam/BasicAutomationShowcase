@@ -1,0 +1,30 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+  workflow_dispatch:
+
+env:
+  PROJECT_PATH: DemoAutomation.uproject
+  ENGINE_PATH: 'C:\Epic\UE_5.4'
+
+jobs:
+  hackcheck:
+    name: Unreal Engine C++ Lint
+    runs-on: self-hosted
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Run UAT Check
+        shell: cmd
+        run: |
+          dir %GITHUB_WORKSPACE%
+          echo %cd%
+          RunLintTest.bat
