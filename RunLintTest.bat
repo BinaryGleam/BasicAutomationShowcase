@@ -1,0 +1,1 @@
+C:\Epic\UE_5.4\Engine\Build\BatchFiles\RunUAT.bat CheckForHacks -project="GG.uproject"
