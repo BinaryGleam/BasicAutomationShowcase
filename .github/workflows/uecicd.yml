@@ -55,7 +55,7 @@ jobs:
         run: |
           cmd mkdir Build
           & "${{ env.ENGINE_PATH }}\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun `
-            -project="%GITHUB_WORKSPACE%\GG.uproject" `
+            -project="%GITHUB_WORKSPACE%\DemoAutomation.uproject" `
             -noP4 -platform=Win64 -clientconfig=Shipping -serverconfig=Development `
             -cook -allmaps -build -stage -pak -archive `
             -archivedirectory="%GITHUB_WORKSPACE%\Build"
