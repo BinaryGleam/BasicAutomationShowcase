@@ -1,0 +1,103 @@
+name: Unreal Automation Sample
+
+on:
+  push:
+    branches: [ "Master" ]
+  pull_request:
+    branches: [ "Master" ]
+
+env:
+  PROJECT_PATH: GG.uproject
+  ENGINE_PATH: 'C:\Users\lukni\UE_5.4'
+  
+jobs:
+  lint:
+    name: Unreal Engine C++ Lint
+    runs-on: self-hosted
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Run UAT Check
+        shell: cmd
+        run: |
+          dir %GITHUB_WORKSPACE%
+          echo %cd%
+          RunLintTest.bat
+        # %GITHUB_WORKSPACE%\RunLintTest.bat
+          
+  test-editor:
+    name: Run Editor Automation Tests
+    runs-on: self-hosted
+    needs: lint
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Generate Project Files
+        shell: cmd
+        run: C:/Users/lukni/UE_5.4/Engine/Build/BatchFiles/Build.bat  -projectfiles -project="%GITHUB_WORKSPACE%\GG.uproject" -game -rocket -progress -log="%~dp0\Saved\Logs\UnrealVersionSelector-2025.05.07-00.56.10.log"
+
+      - name: Generate intermediate and binaries
+        shell: cmd
+        run: C:/Users/lukni/UE_5.4/Engine/Build/BatchFiles/Build.bat "%GITHUB_WORKSPACE%\GG.uproject" GG Win64 Development
+
+      # Doesn't work because I didn't find a way to build the missing modules in a way that satisfies the engine
+      # If manually you build the modules yourseld and then you run the bat command, the tests work fine
+      # - name: Run Editor Tests
+      #   shell: cmd
+      #   run: |
+      #     RunTestsEditor.bat
+          
+  build:
+    name: Build & Run Packaged Tests
+    runs-on: self-hosted
+    needs: test-editor
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Build and Package
+        run: |
+          cmd mkdir Build
+          & "${{ env.ENGINE_PATH }}\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun `
+            -project="%GITHUB_WORKSPACE%\GG.uproject" `
+            -noP4 -platform=Win64 -clientconfig=Shipping -serverconfig=Development `
+            -cook -allmaps -build -stage -pak -archive `
+            -archivedirectory="%GITHUB_WORKSPACE%\Build"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BuildResult
+          path: Q:\actions-runner\_work\gas_CI_CD\gas_CI_CD\Build\
+
+     # - name: Run Packaged Tests
+     #   shell: cmd
+     #   run: Q:\actions-runner\_work\gas_CI_CD\gas_CI_CD\Saved\StagedBuilds\Windows\GG.exe -stdout -unattended -buildmachine -execcmds="automation list;runtests Project." -Messaging -Windowed -CrashForUAT -testexit="Automation Test Queue Empty"
+          
+  deploy:
+    name: Deploy to Itch.io
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Dowload Artifact
+        run: mkdir artifact
+      - uses: actions/download-artifact@v4.3.0
+        with:
+          path: ./artifact
+
+      - name: Download Butler
+        run: |
+          # -L follows redirects
+          # -O specifies output name
+          curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
+          unzip butler.zip
+          # GNU unzip tends to not set the executable bit even though it's set in the .zip
+          chmod +x butler
+          # just a sanity check run (and also helpful in case you're sharing CI logs)
+          ./butler -V
+
+      - name: Deploy with Butler
+        run: |
+          ./butler push ./artifact binarygleam/mygame:windows --userversion $(date +%Y.%m.%d)
+        env:
+          BUTLER_API_KEY: ${{ secrets.eDsl0nNUE4EEiEFs1L1XVTshRPW4fnFNq7RRrzVS }}
