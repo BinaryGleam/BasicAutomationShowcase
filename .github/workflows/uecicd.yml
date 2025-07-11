@@ -28,3 +28,17 @@ jobs:
           dir %GITHUB_WORKSPACE%
           echo %cd%
           RunLintTest.bat
+  
+  EditorTesting:
+    name: Testing editor automation unreal
+    runs-on: self-hosted
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Run UAT Check
+        shell: cmd
+        run: |
+          dir %GITHUB_WORKSPACE%
+          echo %cd%
+          RunTestsEditor.bat
